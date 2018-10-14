@@ -32,9 +32,8 @@ Sample Output 0
 
 if __name__ == '__main__':
     n = int(input())
-    integer_list = map(int, input().split())
-    new_integer_list = list(integer_list)
-    a, b = new_integer_list[0], new_integer_list[1]
+    integer_list = list(map(int, input().split()))
+    a, b = integer_list[0], integer_list[1]
     t = a, b
     hash_t = hash(t)
     print(hash_t)
