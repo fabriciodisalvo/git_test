@@ -34,5 +34,4 @@ if __name__ == '__main__':
     n = int(input())
     integer_list = list(map(int, input().split()))
     t = integer_list[0], integer_list[1]
-    hash_t = hash(t)
-    print(hash_t)
+    print(hash(t))
