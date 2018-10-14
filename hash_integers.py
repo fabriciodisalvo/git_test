@@ -32,6 +32,6 @@ Sample Output 0
 
 if __name__ == '__main__':
     n = int(input())
-    integer_list = list(map(int, input().split()))
+    integer_list = [int(x) for x in input().split()]
     t = integer_list[0], integer_list[1]
     print(hash(t))
