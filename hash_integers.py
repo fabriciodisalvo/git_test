@@ -32,5 +32,4 @@ Sample Output 0
 
 if __name__ == '__main__':
     n = int(input())
-    t = tuple([int(x) for x in input().split()])
-    print(hash(t))
+    print(hash(tuple([int(x) for x in input().split()])))
