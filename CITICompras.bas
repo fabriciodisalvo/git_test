@@ -144,7 +144,7 @@ For n = 8 To LastSummarizeTableRow:
     codigo_de_moneda = "PES"                                                ' FIXED
     tipo_de_cambio = "1000000"                                              ' FIXED
     cantidad_de_alicuotas_de_iva = 0                                        ' Calculation
-    codigo_de_operacion = Application.VLookup(Left(Range("D" & n), 3), Sheets("reference").Range("$A$2:$E$1003"), 4, False)
+    codigo_de_operacion = "0"                                               ' Calculation
     credito_fiscal_computable = 0                                           ' Calculation
     otros_tributos = "0"                                                    ' Calculation
     CUIT_emisor_corredor = "0"                                              ' NOT USED
@@ -299,6 +299,17 @@ For n = 8 To LastSummarizeTableRow:
             Sheets("CITI_COMPRAS_ALICUOTAS").Range("A" & vat_index).Value = "'" & vat_complete_string
         End If
     End If
+    
+'   After reviewing taxes, get CODIGO DE OPERACION based on the document.
+    If cantidad_de_alicuotas_de_iva = 0 Then
+        If (Left(Range("D" & n), 3)) = "FTZ" Or (Left(Range("D" & n), 3)) = "FCE" Then
+            codigo_de_operacion = "X"
+        ElseIf importe_exento > 0 Then
+            codigo_de_operacion = "E"
+        Else
+            codigo_de_operacion = "A"
+        End If
+    End If
 
   
     complete_string = Format(fecha_de_comprobante, String(8, "0")) & _
@@ -418,9 +429,13 @@ Dim SecondsElapsed As Double
   StartTime = Timer
 
 '*****************************
+Application.Calculation = xlCalculationManual
+Application.ScreenUpdating = False
 Sheets("export").Activate
 Call CreateUniqueVATTable
 Call CreateFLATFILES
+Application.Calculation = xlCalculationAutomatic
+Application.ScreenUpdating = True
 '*****************************
 
 'Determine how many seconds code took to run
