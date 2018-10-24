@@ -8,7 +8,6 @@ Attribute VB_Name = "CITICompras"
 '               : CreateUniqueVATTable
 ' Comments      :
 '               :
-' $History: $
 '******************************************************************************
 
 Dim sourcesheet As Worksheet, destsheet As Worksheet
@@ -27,9 +26,9 @@ Sub CreateUniqueVATTable()
 ' Output        : exportSheet - Summarize table.
 ' Comments      :
 ' History       :
-'   #1   Column by column, manual calculation for each concept.
-'   #2   Simplifyied creation of table.
-'   #3
+'   #.001   Column by column, manual calculation for each concept.
+'   #.021   Simplifyied creation of table.
+'   #.000
 '******************************************************************************
 
     Set sourcesheet = Sheets("input")
@@ -98,84 +97,131 @@ Sub CreateUniqueVATTable()
 
 End Sub
 
-Sub CreateCPBT()
+Sub CreateFLATFILES()
+
 '******************************************************************************
-' Description   : This sub creates the CBTE flat file.
+' Description   : This sub creates the CITI flat files.
 ' Input         : exportSheet - Summarize table.
 ' Output        : REGINFO_CV_COMPRAS_CBTE
 ' Comments      :
 ' History       :
-'   #1   Column by column, manual calculation for each concept.
-'   #2
-'   #3
+'   #.001   Column by column, manual calculation for each concept.
+'   #.021   Tree-like calculation of fields.
+'   #.030   All Outputs completed
 '******************************************************************************
-For n = 8 To 181:
+
+base_index = 0
+vat_index = 0
+import_index = 0
+Sheets("CITI_COMPRAS_CBTE").Range("A:A").ClearContents
+Sheets("CITI_COMPRAS_ALICUOTAS").Range("A:A").ClearContents
+Sheets("CITI_COMPRAS_IMPORTACIONES").Range("A:A").ClearContents
+
+
+For n = 8 To 27:
+
+'   Create blank fields for each necessary line. Get info on non-variable fields, like DATE and DOCUMENT TYPE, for BASE flat file.
     complete_string = ""
+    fecha_de_comprobante = Format(Range("E" & n), "YYYYMMDD")               ' From Table
+    tipo_de_comprobante = Application.VLookup(Left(Range("D" & n), 3), Sheets("reference").Range("$A$2:$E$1003"), 2, False)
+    punto_de_venta = "0"                                                    ' Variable, depending on tipo_de_comprobante
+    numero_de_comprobante = "0"                                             ' Variable, depending on tipo_de_comprobante
+    despacho = ""                                                           ' Variable, depending on tipo_de_comprobante
+    codigo_de_documento_del_vendedor = "80"                                 ' FIXED
+    numero_de_documento_del_vendedor = Range("C" & n)                       ' From Table
+    denominacion_del_vendedor = Range("F" & n)                              ' From Table
+    importe_total_de_la_operacion = Abs(Round(Range("P" & n), 2) * 100)     ' From Table, amount
+    importe_no_neto_gravado = Format("00", String(15, "0"))                                          ' Calculation
+    importe_exento = "0"                                                    ' Calculation
+    importe_percepciones_iva = Abs(Round(Range("O" & n), 2) * 100)          ' From Table, amount
+    importe_percepciones_otros = Abs(Round(Range("N" & n), 2) * 100)        ' From Table, amount
+    importe_percepciones_iibb = Abs(Round(Range("M" & n), 2) * 100)         ' From Table, amount
+    importe_percepciones_municipales = "0"                                  ' FIXED
+    importe_impuestos_internos = "0"                                        ' FIXED
+    codigo_de_moneda = "PES"                                                ' FIXED
+    tipo_de_cambio = "1000000"                                              ' FIXED
+    cantidad_de_alicuotas_de_iva = 0                                        ' Calculation
+    codigo_de_operacion = Application.VLookup(Left(Range("D" & n), 3), Sheets("reference").Range("$A$2:$E$1003"), 4, False)
+    credito_fiscal_computable = 0                                           ' Calculation
+    otros_tributos = "0"                                                    ' Calculation
+    CUIT_emisor_corredor = "0"                                              ' NOT USED
+    denominacion_emisor_corredor = ""                                       ' NOT USED
+    iva_comision = "0"                                                      ' NOT USED
     
-    fecha_de_comprobante = Format(Range("E" & n), "YYYYMMDD")
-    tipo_de_comprobante = WorksheetFunction.VLookup(Left(Range("D" & n), 3), Sheets("data").Range("$B$2:$D$1003"), 2, False)
+'   Create blank fields for each necessary line for VAT flat file.
+    vat_complete_string = ""
+    importe_neto_gravado = 0                                                ' Calculation
+    alicuota_de_iva = "0"                                                   ' From Table
+    impuesto_liquidado = 0                                                  ' From Table
+
+'   Create blank fields for each necessary line for IMPORT flat file.
+    import_complete_string = ""
     
-    If tipo_de_comprobante < 66 Then
+
+'   Get DOCUMENT NUMBERING for FACTURAS, NOTAS DE DEBITO, NOTAS DE CREDITO.
+    If Not IsError(Application.Match(tipo_de_comprobante, Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 51, 52, 53, 54, 55), False)) Then
         punto_de_venta = Mid(Range("D" & n), 4, 4)
-        numero_de_comprobante = Mid(Range("D" & n), 9, 99)
-        despacho = ""
-    ElseIf tipo_de_comprobante = 66 Then
-        punto_de_venta = 0
-        numero_de_comprobante = 0
+        numero_de_comprobante = Mid(Range("D" & n), 9, 8)
+'   Get DOCUMENT NUMBERING for DESPACHOS.
+    ElseIf Not IsError(Application.Match(tipo_de_comprobante, Array(66), False)) Then
         despacho = Range("D" & n)
-    ElseIf tipo_de_comprobante = 99 Then
-        punto_de_venta = 0
+'   Get DOCUMENT NUMBERING for OTROS COMPROBANTES.
+    ElseIf Not IsError(Application.Match(tipo_de_comprobante, Array(36, 99), False)) Then
         numero_de_comprobante = Mid(Range("D" & n), 4, 99)
-        despacho = ""
-    Else
-        punto_de_venta = 0
-        numero_de_comprobante = Mid(Range("D" & n), 9, 99)
-        despacho = ""
     End If
-    
-    codigo_de_documento_del_vendedor = "80"
-    numero_de_documento_del_vendedor = Range("C" & n)
-    denominacion_del_vendedor = Range("F" & n)
-    importe_total_de_la_operacion = Abs(Round(Range("P" & n), 2) * 100)
-    
-    If Range("H" & n) < 0 Then
-        importe_no_neto_gravado = Abs(Round(Range("H" & n), 2) * 100)
-    Else
-        importe_no_neto_gravado = "0"
-    End If
-    If (tipo_de_comprobante > 5 And tipo_de_comprobante < 17) Or tipo_de_comprobante = 66 Then
-        If Mid(despacho, 6, 1) = "E" Then
-            importe_exento = Abs(Round(Range("H" & n), 2) * 100)
-        Else
-            importe_exento = "0"
-        End If
+
+
+'   Get IMPORTE NETO NO GRAVADO for Negative amounts in double postings.
+    If Range("H" & n) < 0 Then importe_no_neto_gravado = "-" & Mid(Format(Abs(Round(Range("H" & n), 2) * 100), String(15, "0")), 2, 99)
+
+'   Get IMPORTE EXENTO for All cases that do not cover IMPORTE NETO NO GRAVADO.
+    If Not IsError(Application.Match(tipo_de_comprobante, Array(6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 66), False)) Or Range("H" & n) < 0 Then
+        If Mid(despacho, 6, 1) = "E" Then importe_exento = Abs(Round(Range("H" & n), 2) * 100)
     Else
         importe_exento = Abs(Round(Range("H" & n), 2) * 100)
     End If
-    
-    importe_percepciones_iva = Abs(Round(Range("O" & n), 2) * 100)
-    importe_percepciones_otros = Abs(Round(Range("N" & n), 2) * 100)
-    importe_percepciones_iibb = Abs(Round(Range("M" & n), 2) * 100)
-    importe_percepciones_municipales = "0"
-    importe_impuestos_internos = "0"
-    codigo_de_moneda = "PES"
-    tipo_de_cambio = "1000000"
-    
-    alicuotas_count = 0
-    If Range("I" & n) <> 0 Then alicuotas_count = alicoutas_count + 1
+
+'   Get VAT information for creating lines for this and additional flat files.
+'   Check 21% VAT information.
+    vat_value = Range("I" & n).Value
+    If Range("I" & n) <> 0 Then
+        cantidad_de_alicuotas_de_iva = cantidad_de_alicuotas_de_iva + 1
+        credito_fiscal_computable = credito_fiscal_computable + Abs(Round(Range("I" & n), 2) * 100)
+        importe_neto_gravado = Abs(Round(Range("I" & n), 2) / 0.21 * 100)
+        alicuota_de_iva = "0005"
+        impuesto_liquidado = Abs(Round(Range("I" & n), 2) * 100)
+        If tipo_de_comprobante = 66 Then
+            import_complete_string = Left(despacho & Space(16), 16) & _
+                                        Format(importe_neto_gravado, String(15, "0")) & _
+                                        Format(alicuota_de_iva, String(4, "0")) & _
+                                        Format(impuesto_liquidado, String(15, "0"))
+            import_index = import_index + 1
+            Sheets("CITI_COMPRAS_IMPORTACIONES").Range("A" & import_index).Value = "'" & import_complete_string
+        Else
+            vat_complete_string = Format(tipo_de_comprobante, String(3, "0")) & _
+                                    Format(punto_de_venta, String(5, "0")) & _
+                                    Format(numero_de_comprobante, String(20, "0")) & _
+                                    Format(codigo_de_documento_del_vendedor, String(2, "0")) & _
+                                    Format(numero_de_documento_del_vendedor, String(20, "0")) & _
+                                    Format(importe_neto_gravado, String(15, "0")) & _
+                                    Format(alicuota_de_iva, String(4, "0")) & _
+                                    Format(impuesto_liquidado, String(15, "0"))
+            vat_index = vat_index + 1
+            Sheets("CITI_COMPRAS_ALICUOTAS").Range("A" & vat_index).Value = "'" & vat_complete_string
+        End If
+    End If
+'   Check 10.5% VAT information.
+'   Check 27.0% VAT information.
+'   Check 10.0% VAT information.
+'   Check  5.0% VAT information.
+'   Check  0.0% VAT information.
+
+
     If Range("J" & n) <> 0 Then alicuotas_count = alicoutas_count + 1
     If Range("K" & n) <> 0 Then alicuotas_count = alicoutas_count + 1
     If Range("L" & n) <> 0 Then alicuotas_count = alicoutas_count + 1
-    cantidad_de_alicuotas_de_iva = alicuotas_count
-    
-    codigo_de_operacion = "CHECK"
-    credito_fiscal_computable = Abs(Round(Range("I" & n) + Range("J" & n) + Range("K" & n) + Range("L" & n), 2) * 100)
-    otros_tributos = "0"
-    CUIT_emisor_corredor = "0"
-    denominacion_emisor_corredor = ""
-    iva_comision = "0"
-    
-    complete_string = fecha_de_comprobante & _
+   
+    complete_string = Format(fecha_de_comprobante, String(8, "0")) & _
                         Format(tipo_de_comprobante, String(3, "0")) & _
                         Format(punto_de_venta, String(5, "0")) & _
                         Format(numero_de_comprobante, String(20, "0")) & _
@@ -184,7 +230,7 @@ For n = 8 To 181:
                         Format(numero_de_documento_del_vendedor, String(20, "0")) & _
                         Left(denominacion_del_vendedor & Space(30), 30) & _
                         Format(importe_total_de_la_operacion, String(15, "0")) & _
-                        Format(importe_no_neto_gravado, String(15, "0")) & _
+                        importe_no_neto_gravado & _
                         Format(importe_exento, String(15, "0")) & _
                         Format(importe_percepciones_iva, String(15, "0")) & _
                         Format(importe_percepciones_otros, String(15, "0")) & _
@@ -201,7 +247,10 @@ For n = 8 To 181:
                         Left(denominacion_emisor_corredor & Space(30), 30) & _
                         Format(iva_comision, String(15, "0"))
     
-    Sheets("CBTE").Range("A" & n - 7).Value = complete_string
+    Sheets("CITI_COMPRAS_CBTE").Range("A" & n - 7).Value = "'" & complete_string
+
+
+
 Next n
 End Sub
 
@@ -216,7 +265,9 @@ Dim SecondsElapsed As Double
   StartTime = Timer
 
 '*****************************
+Sheets("export").Activate
 Call CreateUniqueVATTable
+Call CreateCPBT
 '*****************************
 
 'Determine how many seconds code took to run
