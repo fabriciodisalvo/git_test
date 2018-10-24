@@ -109,6 +109,9 @@ Sub CreateFLATFILES()
 '   #.021   Tree-like calculation of fields.
 '   #.030   All Outputs completed
 '******************************************************************************
+Dim LastSummarizeTableRow As Long
+
+LastSummarizeTableRow = destsheet.Cells(destsheet.Rows.Count, "B").End(xlUp).Row
 
 base_index = 0
 vat_index = 0
@@ -118,7 +121,7 @@ Sheets("CITI_COMPRAS_ALICUOTAS").Range("A:A").ClearContents
 Sheets("CITI_COMPRAS_IMPORTACIONES").Range("A:A").ClearContents
 
 
-For n = 8 To 27:
+For n = 8 To LastSummarizeTableRow:
 
 '   Create blank fields for each necessary line. Get info on non-variable fields, like DATE and DOCUMENT TYPE, for BASE flat file.
     complete_string = ""
@@ -184,12 +187,12 @@ For n = 8 To 27:
 '   Get VAT information for creating lines for this and additional flat files.
 '   Check 21% VAT information.
     vat_value = Range("I" & n).Value
-    If Range("I" & n) <> 0 Then
+    If vat_value <> 0 Then
         cantidad_de_alicuotas_de_iva = cantidad_de_alicuotas_de_iva + 1
-        credito_fiscal_computable = credito_fiscal_computable + Abs(Round(Range("I" & n), 2) * 100)
-        importe_neto_gravado = Abs(Round(Range("I" & n), 2) / 0.21 * 100)
+        credito_fiscal_computable = credito_fiscal_computable + Abs(Round(vat_value, 2) * 100)
+        importe_neto_gravado = Abs(Round(vat_value, 2) / 0.21 * 100)
         alicuota_de_iva = "0005"
-        impuesto_liquidado = Abs(Round(Range("I" & n), 2) * 100)
+        impuesto_liquidado = Abs(Round(vat_value, 2) * 100)
         If tipo_de_comprobante = 66 Then
             import_complete_string = Left(despacho & Space(16), 16) & _
                                         Format(importe_neto_gravado, String(15, "0")) & _
@@ -211,16 +214,93 @@ For n = 8 To 27:
         End If
     End If
 '   Check 10.5% VAT information.
+    vat_value = Range("J" & n).Value
+    If vat_value <> 0 Then
+        cantidad_de_alicuotas_de_iva = cantidad_de_alicuotas_de_iva + 1
+        credito_fiscal_computable = credito_fiscal_computable + Abs(Round(vat_value, 2) * 100)
+        importe_neto_gravado = Abs(Round(vat_value, 2) / 0.105 * 100)
+        alicuota_de_iva = "0004"
+        impuesto_liquidado = Abs(Round(vat_value, 2) * 100)
+        If tipo_de_comprobante = 66 Then
+            import_complete_string = Left(despacho & Space(16), 16) & _
+                                        Format(importe_neto_gravado, String(15, "0")) & _
+                                        Format(alicuota_de_iva, String(4, "0")) & _
+                                        Format(impuesto_liquidado, String(15, "0"))
+            import_index = import_index + 1
+            Sheets("CITI_COMPRAS_IMPORTACIONES").Range("A" & import_index).Value = "'" & import_complete_string
+        Else
+            vat_complete_string = Format(tipo_de_comprobante, String(3, "0")) & _
+                                    Format(punto_de_venta, String(5, "0")) & _
+                                    Format(numero_de_comprobante, String(20, "0")) & _
+                                    Format(codigo_de_documento_del_vendedor, String(2, "0")) & _
+                                    Format(numero_de_documento_del_vendedor, String(20, "0")) & _
+                                    Format(importe_neto_gravado, String(15, "0")) & _
+                                    Format(alicuota_de_iva, String(4, "0")) & _
+                                    Format(impuesto_liquidado, String(15, "0"))
+            vat_index = vat_index + 1
+            Sheets("CITI_COMPRAS_ALICUOTAS").Range("A" & vat_index).Value = "'" & vat_complete_string
+        End If
+    End If
 '   Check 27.0% VAT information.
-'   Check 10.0% VAT information.
-'   Check  5.0% VAT information.
-'   Check  0.0% VAT information.
+    vat_value = Range("K" & n).Value
+    If vat_value <> 0 Then
+        cantidad_de_alicuotas_de_iva = cantidad_de_alicuotas_de_iva + 1
+        credito_fiscal_computable = credito_fiscal_computable + Abs(Round(vat_value, 2) * 100)
+        importe_neto_gravado = Abs(Round(vat_value, 2) / 0.27 * 100)
+        alicuota_de_iva = "0006"
+        impuesto_liquidado = Abs(Round(vat_value, 2) * 100)
+        If tipo_de_comprobante = 66 Then
+            import_complete_string = Left(despacho & Space(16), 16) & _
+                                        Format(importe_neto_gravado, String(15, "0")) & _
+                                        Format(alicuota_de_iva, String(4, "0")) & _
+                                        Format(impuesto_liquidado, String(15, "0"))
+            import_index = import_index + 1
+            Sheets("CITI_COMPRAS_IMPORTACIONES").Range("A" & import_index).Value = "'" & import_complete_string
+        Else
+            vat_complete_string = Format(tipo_de_comprobante, String(3, "0")) & _
+                                    Format(punto_de_venta, String(5, "0")) & _
+                                    Format(numero_de_comprobante, String(20, "0")) & _
+                                    Format(codigo_de_documento_del_vendedor, String(2, "0")) & _
+                                    Format(numero_de_documento_del_vendedor, String(20, "0")) & _
+                                    Format(importe_neto_gravado, String(15, "0")) & _
+                                    Format(alicuota_de_iva, String(4, "0")) & _
+                                    Format(impuesto_liquidado, String(15, "0"))
+            vat_index = vat_index + 1
+            Sheets("CITI_COMPRAS_ALICUOTAS").Range("A" & vat_index).Value = "'" & vat_complete_string
+        End If
+    End If
+'   Check  5.0% VAT information (PLACEHOLDER FOR FUTURE RATE).
 
+'   Check  2.5% VAT information (PLACEHOLDER FOR FUTURE RATE).
 
-    If Range("J" & n) <> 0 Then alicuotas_count = alicoutas_count + 1
-    If Range("K" & n) <> 0 Then alicuotas_count = alicoutas_count + 1
-    If Range("L" & n) <> 0 Then alicuotas_count = alicoutas_count + 1
-   
+'   Check  0.0% VAT information (ALWAYS THE LAST TO CHECK).
+    If (Not IsError(Application.Match(tipo_de_comprobante, Array(1, 2, 3, 4, 5, 51, 52, 53, 54, 55, 66, 99), False))) And cantidad_de_alicuotas_de_iva = 0 Then
+        cantidad_de_alicuotas_de_iva = cantidad_de_alicuotas_de_iva + 1
+        importe_neto_gravado = 0
+        alicuota_de_iva = "0003"
+        impuesto_liquidado = 0
+        If tipo_de_comprobante = 66 Then
+            import_complete_string = Left(despacho & Space(16), 16) & _
+                                        Format(importe_neto_gravado, String(15, "0")) & _
+                                        Format(alicuota_de_iva, String(4, "0")) & _
+                                        Format(impuesto_liquidado, String(15, "0"))
+            import_index = import_index + 1
+            Sheets("CITI_COMPRAS_IMPORTACIONES").Range("A" & import_index).Value = "'" & import_complete_string
+        Else
+            vat_complete_string = Format(tipo_de_comprobante, String(3, "0")) & _
+                                    Format(punto_de_venta, String(5, "0")) & _
+                                    Format(numero_de_comprobante, String(20, "0")) & _
+                                    Format(codigo_de_documento_del_vendedor, String(2, "0")) & _
+                                    Format(numero_de_documento_del_vendedor, String(20, "0")) & _
+                                    Format(importe_neto_gravado, String(15, "0")) & _
+                                    Format(alicuota_de_iva, String(4, "0")) & _
+                                    Format(impuesto_liquidado, String(15, "0"))
+            vat_index = vat_index + 1
+            Sheets("CITI_COMPRAS_ALICUOTAS").Range("A" & vat_index).Value = "'" & vat_complete_string
+        End If
+    End If
+
+  
     complete_string = Format(fecha_de_comprobante, String(8, "0")) & _
                         Format(tipo_de_comprobante, String(3, "0")) & _
                         Format(punto_de_venta, String(5, "0")) & _
@@ -249,9 +329,82 @@ For n = 8 To 27:
     
     Sheets("CITI_COMPRAS_CBTE").Range("A" & n - 7).Value = "'" & complete_string
 
-
-
 Next n
+
+'   Create actual flat files.
+    Dim rRange As Range
+    Dim ws As Worksheet
+    Dim stTextName As String
+
+'   Create BCTE flat file.
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Set rRange = Sheets("CITI_COMPRAS_CBTE").Range("A1:A" & LastSummarizeTableRow - 7)
+    On Error GoTo 0
+    Application.DisplayAlerts = True
+
+    If rRange Is Nothing Then
+        MsgBox ("No hay datos en el archivo de comprobantes.")
+    Else
+        stTextName = "CITI_COMPRAS_CBTE"
+        stPath = ActiveWorkbook.Path
+        Set ws = Worksheets.Add()
+        rRange.Copy ws.Cells(1, 1)
+        ws.Move
+        Application.DisplayAlerts = False
+        ActiveWorkbook.SaveAs _
+        Filename:=stPath & "\" & stTextName, _
+        FileFormat:=xlText
+        ActiveWorkbook.Close
+        Application.DisplayAlerts = True
+    End If
+
+'   Create ALICUOTAS flat file.
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Set rRange = Sheets("CITI_COMPRAS_ALICUOTAS").Range("A1:A" & vat_index)
+    On Error GoTo 0
+    Application.DisplayAlerts = True
+     
+    If rRange Is Nothing Then
+        MsgBox ("No hay datos en el archivo de alicuotas.")
+    Else
+        stTextName = "CITI_COMPRAS_ALICUOTAS"
+        stPath = ActiveWorkbook.Path
+        Set ws = Worksheets.Add()
+        rRange.Copy ws.Cells(1, 1)
+        ws.Move
+        Application.DisplayAlerts = False
+        ActiveWorkbook.SaveAs _
+        Filename:=stPath & "\" & stTextName, _
+        FileFormat:=xlText
+        ActiveWorkbook.Close
+        Application.DisplayAlerts = True
+    End If
+
+'   Create IMPORTACIONES flat file.
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Set rRange = Sheets("CITI_COMPRAS_IMPORTACIONES").Range("A1:A" & import_index)
+    On Error GoTo 0
+    Application.DisplayAlerts = True
+     
+    If rRange Is Nothing Then
+        MsgBox ("No hay datos en el archivo de Importaciones.")
+    Else
+        stTextName = "CITI_COMPRAS_IMPORTACIONES"
+        stPath = ActiveWorkbook.Path
+        Set ws = Worksheets.Add()
+        rRange.Copy ws.Cells(1, 1)
+        ws.Move
+        Application.DisplayAlerts = False
+        ActiveWorkbook.SaveAs _
+        Filename:=stPath & "\" & stTextName, _
+        FileFormat:=xlText
+        ActiveWorkbook.Close
+        Application.DisplayAlerts = True
+    End If
+
 End Sub
 
 
@@ -267,7 +420,7 @@ Dim SecondsElapsed As Double
 '*****************************
 Sheets("export").Activate
 Call CreateUniqueVATTable
-Call CreateCPBT
+Call CreateFLATFILES
 '*****************************
 
 'Determine how many seconds code took to run
