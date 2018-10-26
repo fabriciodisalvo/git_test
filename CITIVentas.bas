@@ -318,6 +318,62 @@ Next n
 
 End Sub
 
+Private Sub CreateLibroClasico()
+'******************************************************************************
+' Description   : This sub creates an the traditional paper report.
+' Input         : inputSheet - Raw data from SAP
+' Output        : LIBRO - Template to review and print to books.
+' Comments      : RUN ALWAYS AFTER CREATING VAT TABLE
+' History       :
+'   #.001
+'   #.002
+'   #.003
+'******************************************************************************
+
+    Set sourcesheet = Sheets("export")
+    Set destsheet = Sheets("LIBRO")
+
+    destsheet.Range("A5:E5").ClearContents
+    destsheet.Range("A6:E999").Clear
+    SummLastRow = sourcesheet.Cells(sourcesheet.Rows.Count, "C").End(xlUp).Row
+    dest_start_row = 5
+    For n = 8 To SummLastRow:
+        With destsheet
+            .Range("A" & dest_start_row).Value = sourcesheet.Range("E" & n).Value
+            .Range("B" & dest_start_row).Value = sourcesheet.Range("F" & n).Value
+            .Range("C" & dest_start_row).Value = sourcesheet.Range("C" & n).Value
+            .Range("D" & dest_start_row).Value = sourcesheet.Range("D" & n).Value
+            .Range("E" & dest_start_row).Value = sourcesheet.Range("G" & n).Value + sourcesheet.Range("H" & n).Value
+            .Range("F" & dest_start_row).Value = sourcesheet.Range("I" & n).Value + sourcesheet.Range("J" & n).Value + sourcesheet.Range("K" & n).Value
+            .Range("G" & dest_start_row).Value = sourcesheet.Range("P" & n).Value
+        End With
+        dest_start_row = dest_start_row + 1
+    Next n
+    
+    destsheet.Range("A" & dest_start_row).Value = "Totales"
+    destsheet.Range("E" & dest_start_row).Value = "=SUM(E5:E" & dest_start_row - 1 & ")"
+    destsheet.Range("F" & dest_start_row).Value = "=SUM(F5:F" & dest_start_row - 1 & ")"
+    destsheet.Range("G" & dest_start_row).Value = "=SUM(G5:G" & dest_start_row - 1 & ")"
+    Range("A5:G5").Select
+    Selection.Copy
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.PasteSpecial Paste:=xlPasteFormats, Operation:=xlNone, _
+        SkipBlanks:=False, Transpose:=False
+    Application.CutCopyMode = False
+
+    With destsheet.Range("A" & dest_start_row & ":G" & dest_start_row)
+        .Interior.Pattern = xlSolid
+        .Interior.PatternColorIndex = xlAutomatic
+        .Interior.ThemeColor = xlThemeColorAccent2
+        .Interior.TintAndShade = 0
+        .Interior.PatternTintAndShade = 0
+        .Font.ThemeColor = xlThemeColorDark1
+        .Font.TintAndShade = 0
+        .Font.Bold = True
+    End With
+    
+End Sub
+
 
 Private Sub CalculateRunTime_Seconds()
 '******************************************************************************
